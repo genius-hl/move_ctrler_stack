@@ -1,0 +1,78 @@
+#include <iostream>
+#include "motor_controller/motor_controller.h"
+#include <stdio.h>
+#include <termio.h>
+
+int scanKeyboard()
+{ 
+    int ch;
+    struct termios oldt;
+    struct termios newt;
+
+    // Store old settings, and copy to new settings
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+
+    // Make required changes and apply the settings
+    newt.c_lflag &= ~(ICANON | ECHO);
+    newt.c_iflag |= IGNBRK;
+    newt.c_iflag &= ~(INLCR | ICRNL | IXON | IXOFF);
+    newt.c_lflag &= ~(ICANON | ECHO | ECHOK | ECHOE | ECHONL | ISIG | IEXTEN);
+    newt.c_cc[VMIN] = 1;
+    newt.c_cc[VTIME] = 0;
+    tcsetattr(fileno(stdin), TCSANOW, &newt);
+
+    // Get the current character
+    ch = getchar();
+
+    // Reapply old settings
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+
+    return ch;
+}
+int main(int argc, char** argv)
+{
+    ros::init(argc, argv, "move_serial");
+    MotorController* motor_ctrler;
+    if(argc==2)
+        motor_ctrler=MotorController::CreateInstance(argv[1]);
+    else
+	    motor_ctrler=MotorController::CreateInstance();
+	//motor_ctrler->MotorController();
+	float vx=0;
+	float vy=0;
+	float v_th=0;
+	float R_s=0;
+	float L_s=0;
+	//motor_ctrler->speed_to_odom(vx,vy,v_th,R_s,L_s);
+	//motor_ctrler->setSpeed(0,-100);
+	int key;
+	int speed_L=0,speed_R=0;
+	while(true)
+	{
+	key=scanKeyboard();
+	printf(" ascii=%d",key);
+	    switch(key){
+	    
+	    //case 0xE0: switch(c=scanKeyboard()){
+	    
+	        case 'i': speed_L=0; speed_R=-100; break; //head
+	        case 'k': speed_L=0; speed_R=100; break;    //back
+	        case 'j': speed_L=100; speed_R=0; break;    //left
+	        case 'l': speed_L=-100; speed_R=0; break;   //right
+	        default: break;
+	        //}
+	    //default:break;
+	    }
+	    if(key=='s')
+	        {
+	            motor_ctrler->ros_serial->flush();
+	            speed_L=0;
+	            speed_R=0;
+	        }
+	    if(key=='\x03')
+	        break;
+	    motor_ctrler->setSpeed(speed_L,speed_R);
+	}
+	return 0;
+}
