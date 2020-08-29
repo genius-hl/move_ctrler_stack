@@ -2,7 +2,8 @@
 #include "motor_controller/motor_controller.h"
 #include <stdio.h>
 #include <termios.h>
-
+#define min(a,b) ((a)<(b)? (a):(b))
+#define max(a,b) ((a)>(b)? (a):(b))
 void RestoreKeyboardBlocking(struct termios *initial_settings)
 {
 	tcsetattr(0, TCSANOW, initial_settings);
@@ -10,7 +11,7 @@ void RestoreKeyboardBlocking(struct termios *initial_settings)
 
 void SetKeyboardNonBlock(struct termios *initial_settings)
 {
-
+	//https://gist.github.com/whyrusleeping/3983293
     struct termios new_settings;
     tcgetattr(0,initial_settings);
 
@@ -83,6 +84,7 @@ int main(int argc, char** argv)
 	    //motor_ctrler=MotorController::CreateInstance();
 	int key;
 	int speed_L=0,speed_R=0;
+	float quicken=1.0;
 	geometry_msgs::Twist speed_twist, zero_twist;
 	speed_twist.linear.x=0;
 	speed_twist.linear.y=0;
@@ -104,6 +106,16 @@ int main(int argc, char** argv)
 	        case 'k': speed_L=0; speed_R=100; break;    //back
 	        case 'j': speed_L=100; speed_R=0; break;    //left
 	        case 'l': speed_L=-100; speed_R=0; break;   //right
+	        case 'u': 
+			    quicken*=0.8;
+			    quicken=min(quicken,10);	//宏替换：quicken<10? quick:10
+			    quicken=max(0.01,quicken); 
+			    break;
+	        case 'n': 
+			    quicken*=1.25;
+			    quicken=min(quicken,10);
+			    quicken=max(0.01,quicken);
+			    break;
 	        default: break;
 	        //}
 	    //default:break;
@@ -120,8 +132,8 @@ int main(int argc, char** argv)
             speed_R=0;
             break;
         }
-        speed_twist.linear.x=speed_L;
-        speed_twist.linear.y=speed_R;
+        speed_twist.linear.x=int(speed_L*quicken);
+        speed_twist.linear.y=int(speed_R*quicken);
         pubSpeed.publish(speed_twist);
 	    //motor_ctrler->setSpeed(speed_L,speed_R);
 	}
