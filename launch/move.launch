@@ -1,0 +1,12 @@
+<!-- *xml* -->
+<launch>
+
+    <master auto="start"/>
+    <!--run move_controller -->
+    <node pkg="move_controller" type="move_controller" name="move_controller" />
+    
+    <!--run speed_node-->
+    <node pkg="move_controller" type="speed_node" name="speed_node"/>
+    
+    
+</launch>
