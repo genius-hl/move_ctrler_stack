@@ -93,36 +93,55 @@ int main(int argc, char** argv)
 	speed_twist.angular.y=0;
 	speed_twist.angular.z=0;
 	zero_twist=speed_twist;
-    
+    int state=0;
+    int turn_count=0;
 	while(ros::ok())
 	{
-	key=scanKeyboard();
-	//printf(" ascii=%d",key);
+	    
+	    key=scanKeyboard();
+	    //printf(" ascii=%d",key);
 	    switch(key){
 	    
 	    //case 0xE0: switch(c=scanKeyboard()){
-	    
+	        case '2':
 	        case 'i': speed_L=0; speed_R=-100; break; //head
+	        
+	        case '8':
 	        case 'k': speed_L=0; speed_R=100; break;    //back
-	        case 'j': speed_L=100; speed_R=0; break;    //left
-	        case 'l': speed_L=-100; speed_R=0; break;   //right
+	        
+	        case '4':
+	        case 'j': speed_L=100; speed_R=0; 
+	                  turn_count=50000;
+	                  break;    //left
+	        
+	        case '6':
+	        case 'l': speed_L=-100; speed_R=0; 
+	                  turn_count=50000;
+	                  break;   //right
+	        
+	        case '1':
 	        case 'u': 
+	            quicken*=1.25;
+			    quicken=min(quicken,10);
+			    quicken=max(0.01,quicken);
+			    break;
+			    
+		case '7':
+	        case 'n': 
 			    quicken*=0.8;
 			    quicken=min(quicken,10);	//宏替换：quicken<10? quick:10
 			    quicken=max(0.01,quicken); 
-			    break;
-	        case 'n': 
-			    quicken*=1.25;
-			    quicken=min(quicken,10);
-			    quicken=max(0.01,quicken);
 			    break;
 	        default: break;
 	        //}
 	    //default:break;
 	    }
-	    if(key=='s')
+	    if(key=='s'||key=='0'||key=='5')
         {
             //motor_ctrler->ros_serial->flush();
+            speed_twist.linear.x=int(speed_L*0.5);
+            speed_twist.linear.y=int(speed_R*0.5);
+            pubSpeed.publish(speed_twist);  // slow to stop
             speed_L=0;
             speed_R=0;
         }
@@ -135,6 +154,9 @@ int main(int argc, char** argv)
         speed_twist.linear.x=int(speed_L*quicken);
         speed_twist.linear.y=int(speed_R*quicken);
         pubSpeed.publish(speed_twist);
+        if(speed_L!=0&&--turn_count<=0) //turn until turn_count==0, any better way?
+        {speed_L=0; speed_R=0;}
+        
 	    //motor_ctrler->setSpeed(speed_L,speed_R);
 	}
 	
