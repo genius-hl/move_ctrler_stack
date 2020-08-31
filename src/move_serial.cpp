@@ -74,7 +74,7 @@ int main(int argc, char** argv)
     
     ROS_INFO("\033[1;32m---->\033[0m key scan Started.");
     
-    ros::Publisher pubSpeed=nh.advertise<geometry_msgs::Twist>("/motor_speed",1);
+    ros::Publisher pubSpeed=nh.advertise<geometry_msgs::Twist>("/motor_set_speed",1);
     
     
     //MotorController* motor_ctrler;
