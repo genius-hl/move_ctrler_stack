@@ -93,12 +93,13 @@ int main(int argc, char** argv)
 	speed_twist.angular.y=0;
 	speed_twist.angular.z=0;
 	zero_twist=speed_twist;
-    int state=0;
+    bool no_input=true;
     int turn_count=0;
 	while(ros::ok())
 	{
 	    
 	    key=scanKeyboard();
+	    no_input=false;
 	    //printf(" ascii=%d",key);
 	    switch(key){
 	    
@@ -111,12 +112,12 @@ int main(int argc, char** argv)
 	        
 	        case '4':
 	        case 'j': speed_L=100; speed_R=0; 
-	                  turn_count=50000;
+	                  turn_count=5000;
 	                  break;    //left
 	        
 	        case '6':
 	        case 'l': speed_L=-100; speed_R=0; 
-	                  turn_count=50000;
+	                  turn_count=5000;
 	                  break;   //right
 	        
 	        case '1':
@@ -132,7 +133,8 @@ int main(int argc, char** argv)
 			    quicken=min(quicken,10);	//宏替换：quicken<10? quick:10
 			    quicken=max(0.01,quicken); 
 			    break;
-	        default: break;
+		case -1: no_input=true;break;
+	        default: speed_L=0;speed_R=0; break;
 	        //}
 	    //default:break;
 	    }
@@ -151,11 +153,16 @@ int main(int argc, char** argv)
             speed_R=0;
             break;
         }
+	if(speed_L!=0) //turn until turn_count==0, any better way?
+	{
+	    if(--turn_count<=0)
+	    	speed_L=0; speed_R=0;
+	    quicken=1;
+	}
         speed_twist.linear.x=int(speed_L*quicken);
         speed_twist.linear.y=int(speed_R*quicken);
-        pubSpeed.publish(speed_twist);
-        if(speed_L!=0&&--turn_count<=0) //turn until turn_count==0, any better way?
-        {speed_L=0; speed_R=0;}
+        //if(!no_input)
+	    pubSpeed.publish(speed_twist);
         
 	    //motor_ctrler->setSpeed(speed_L,speed_R);
 	}
