@@ -31,7 +31,7 @@ int main(int argc, char** argv)
     
     ros::Publisher speed_pub=nh.advertise<geometry_msgs::Twist>("/motor_get_speed",50);	//先只用轮式odom，后期融合激光odom
     
-    tf::TransformBroadcaster odom_broadcaster;
+    //tf::TransformBroadcaster odom_broadcaster;
     int speed_getL=0;
     int speed_getR=0;
     geometry_msgs::Twist speed_get;
@@ -41,14 +41,18 @@ int main(int argc, char** argv)
    	speed_get.angular.x=0;
     speed_get.angular.y=0;
     speed_get.angular.z=0;
+    ros::Rate rate(200);    //control frequence 200Hz
     while(ros::ok())
     {
     
     	motor_ctrler->getSpeed(speed_getL,speed_getR);
+
     	speed_get.linear.x=(float_64)speed_getL*TIRE_LONG/40.0;
     	speed_get.linear.y=(float_64)speed_getR*TIRE_LONG/40.0;
     	speed_pub(speed_get);
+
     	ros::spinOnce();
+    	rate.sleep();
     }
     
     
