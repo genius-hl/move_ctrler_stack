@@ -47,9 +47,9 @@ int main(int argc, char** argv)
     
     	motor_ctrler->getSpeed(speed_getL,speed_getR);
 
-    	speed_get.linear.x=(float_64)speed_getL*TIRE_LONG/40.0;
-    	speed_get.linear.y=(float_64)speed_getR*TIRE_LONG/40.0;
-    	speed_pub(speed_get);
+    	speed_get.linear.x=(double)speed_getL*0.0004;//TIRE_LONG/40.0; //0.0004 can be adjust further
+    	speed_get.linear.y=(double)speed_getR*0.0004;//TIRE_LONG/40.0;
+    	speed_pub.publish(speed_get);
 
     	ros::spinOnce();
     	rate.sleep();
@@ -68,3 +68,5 @@ int main(int argc, char** argv)
 //轮胎周长：pi*32cm~=1.0053096m
 //速度区间0-1.25m/s
 //编码器报告数值与实际转速比值：300/7.5=40？？？
+//encoder report value relate velocity 300(RPM?):1.2(m/s)
+
