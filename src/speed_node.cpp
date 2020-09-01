@@ -45,8 +45,8 @@ int main(int argc, char** argv)
     {
     
     	motor_ctrler->getSpeed(speed_getL,speed_getR);
-    	speed_get.linear.x=speed_getL;
-    	speed_get.linear.y=speed_getR;
+    	speed_get.linear.x=(float_64)speed_getL*TIRE_LONG/40.0;
+    	speed_get.linear.y=(float_64)speed_getR*TIRE_LONG/40.0;
     	speed_pub(speed_get);
     	ros::spinOnce();
     }
@@ -55,3 +55,12 @@ int main(int argc, char** argv)
     
     return 0;
 }
+
+/*---------机器人参数-----------*/
+//总长95cm;总宽68cm;高36cm
+//行驶速度0-4.5km/h
+//轮胎 外径32cm 宽6cm
+//-----------机器人模型-------//
+//轮胎周长：pi*32cm~=1.0053096m
+//速度区间0-1.25m/s
+//编码器报告数值与实际转速比值：300/7.5=40？？？
