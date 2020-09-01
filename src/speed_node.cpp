@@ -27,7 +27,7 @@ int main(int argc, char** argv)
     
     ROS_INFO("\033[1;32m---->\033[0m Speed Node Started.");
     
-    ros::Subscriber subSpeed=nh.subscribe<geometry_msgs::Twist>("/motor_set_speed",1,&Write_speedHandle);
+    ros::Subscriber sub_setSpeed=nh.subscribe<geometry_msgs::Twist>("/motor_set_speed",1,&Write_speedHandle);
     
     ros::Publisher speed_pub=nh.advertise<geometry_msgs::Twist>("/motor_get_speed",50);	//先只用轮式odom，后期融合激光odom
     
