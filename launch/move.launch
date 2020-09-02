@@ -8,5 +8,8 @@
     <!--run speed_node-->
     <node pkg="move_controller" type="speed_node" name="speed_node" output="screen" />
     
+    <!--run wheel odom node -->
+    <node pkg="move_controller" type="wheelOdom_node" name="wheelOdom_node" output="screen" />
+    
     
 </launch>

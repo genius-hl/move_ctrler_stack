@@ -1,11 +1,12 @@
 #include <iostream>
-#include "motor_controller/motor_controller.h"
+//#include "motor_controller/motor_controller.h"
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
-MotorController* motor_ctrler;
-tf::TransformBroadcaster odom_broadcaster;
+//MotorController* motor_ctrler;
+
+tf::TransformBroadcaster* odom_broadcaster;
 ros::Publisher odom_pub;
 double v_x=0.0;
 double v_y=0.0;
@@ -14,7 +15,7 @@ double x=0.0;
 double y=0.0;
 double theta=0.0;
 ros::Time current_time,last_time;
-void speed_to_odom(geometry_msgs::Twist& motorSpeed)
+void speed_to_odom(geometry_msgs::Twist motorSpeed)
 {
 	current_time = ros::Time::now();
 	double v_mid = (motorSpeed.linear.x+motorSpeed.linear.y) / 2.0;
@@ -25,7 +26,7 @@ void speed_to_odom(geometry_msgs::Twist& motorSpeed)
 	double v_turnJoin=-motorSpeed.linear.x+motorSpeed.linear.y;
 	//if(v_turnJoin<0.008||v_turnJoin>-0.008)
 		//v_turnJoin=0;
-	v_turn=v_turnJoin/0.625;	//左转为正 v_turn=(v_r - v_l)/L;
+	v_turn=v_turnJoin/1.5466/0.625;	//左转为正 v_turn=(v_r - v_l)/L; //1.5466 in here is a hardcode coef, to fix 
 	
 	double dt=(current_time-last_time).toSec();
 	double delta_x = v_x * dt;
@@ -37,6 +38,13 @@ void speed_to_odom(geometry_msgs::Twist& motorSpeed)
 	x+=delta_x;
 	y+=delta_y;
 	theta+=delta_theta;
+	//mapping theta to range(0,2*PI)
+	//theta=fmod(theta+M_PI,2*M_PI) >= 0 ? (theta) : (theta+3*M_PI) ;
+	theta=fmod(theta,2*M_PI);
+	if(theta<0)
+	    theta+=2*M_PI;
+	
+	std::cout<<"theta:"<<theta<<std::endl;
 	
 	geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(theta);
 	
@@ -52,7 +60,7 @@ void speed_to_odom(geometry_msgs::Twist& motorSpeed)
     odom_trans.transform.rotation = odom_quat;
 
     //send the transform
-    odom_broadcaster.sendTransform(odom_trans);
+    odom_broadcaster->sendTransform(odom_trans);
 
     //next, we'll publish the odometry message over ROS
     nav_msgs::Odometry odom;
@@ -67,9 +75,9 @@ void speed_to_odom(geometry_msgs::Twist& motorSpeed)
 
     //set the velocity
     odom.child_frame_id = "base_link";
-    odom.twist.twist.linear.x = vx;
-    odom.twist.twist.linear.y = vy;
-    odom.twist.twist.angular.z = vth;
+    odom.twist.twist.linear.x = v_x;
+    odom.twist.twist.linear.y = v_y;
+    odom.twist.twist.angular.z = v_turn;
 
     //publish the message
     odom_pub.publish(odom);
@@ -89,11 +97,17 @@ int main(int argc, char** argv)
 	
 	ros::NodeHandle nh;
 	
-	odom_pub=nh.advertise<nav_msgs::Odometry>("odom",50);	//先只用轮式odom，后期融合激光odom
+	ROS_INFO("\033[1;32m---->\033[0m wheel odom Node Started.");
 	
+	odom_pub=nh.advertise<nav_msgs::Odometry>("odom",50);	//先只用轮式odom，后期融合激光odom
+	odom_broadcaster=new tf::TransformBroadcaster(); 
 	current_time=ros::Time::now();
-	last_time=ros::Time::now;
-	ros::Subscriber subGetSpeed=nh.subscribe<std_msgs::Twist>("/motor_get_speed",1,&speed_to_odom)
+	last_time=ros::Time::now();
+	ros::Subscriber subGetSpeed=nh.subscribe<geometry_msgs::Twist>("/motor_get_speed",1,&speed_to_odom);
+	
+	ros::spin();
+	
+	return 0;
 	
 }
 

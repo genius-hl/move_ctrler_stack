@@ -13,6 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   serial 
   geometry_msgs
+  nav_msgs
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -136,6 +138,11 @@ add_executable(speed_node src/speed_node.cpp)
 target_link_libraries(speed_node
 ${catkin_LIBRARIES}
 /home/robot/catkin_workspace/devel/lib/libmotor_controller.so
+)
+
+add_executable(wheelOdom_node src/wheelOdom_node.cpp)
+target_link_libraries(wheelOdom_node
+${catkin_LIBRARIES}
 )
 
 ## Add cmake target dependencies of the library
