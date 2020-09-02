@@ -26,7 +26,8 @@ void speed_to_odom(geometry_msgs::Twist motorSpeed)
 	double v_turnJoin=-motorSpeed.linear.x+motorSpeed.linear.y;
 	//if(v_turnJoin<0.008||v_turnJoin>-0.008)
 		//v_turnJoin=0;
-	v_turn=v_turnJoin/1.5466/0.625;	//左转为正 v_turn=(v_r - v_l)/L; //1.5466 in here is a hardcode coef, to fix 
+	//长方形车体似乎并不满足v_turn=(v_r - v_l)/L;的关系
+	v_turn=v_turnJoin/1.5591/0.62;	//左转为正 v_turn=(v_r - v_l)/L; //1.5591 in here is a hardcode coef, to fix 
 	
 	double dt=(current_time-last_time).toSec();
 	double delta_x = v_x * dt;

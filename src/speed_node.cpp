@@ -46,9 +46,18 @@ int main(int argc, char** argv)
     {
     
     	motor_ctrler->getSpeed(speed_getL,speed_getR);
-
-    	speed_get.linear.x=(double)speed_getL*0.0004;//TIRE_LONG/40.0; //0.0004 can be adjust further
-    	speed_get.linear.y=(double)speed_getR*0.0004;//TIRE_LONG/40.0;
+		
+		//正确的关系应该是：
+		//编码器返回值speed_getL和speed_getR为减速器的每分钟转速X|Y RPM
+		//减速器减速比为40：1
+		//因此轮子的每秒转速X/60/40 | Y/60/40 RPS
+		//而轮子1圈（1R）为pi*2*r=pi*2*0.32约=1.0053096米
+		//因此线速度：
+		speed_get.linear.x=(double)speed_getL / 2400.0 * 1.0053096;
+		speed_get.linear.y=(double)speed_getR / 2400.0 * 1.0053096;
+		//如果要求角速度，w=v/r就行
+    	//speed_get.linear.x=(double)speed_getL*0.0004;//TIRE_LONG/40.0; //0.0004 can be adjust further
+    	//speed_get.linear.y=(double)speed_getR*0.0004;//TIRE_LONG/40.0;
     	speed_pub.publish(speed_get);
 
     	ros::spinOnce();
