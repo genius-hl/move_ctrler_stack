@@ -29,7 +29,8 @@ void speed_to_odom(geometry_msgs::Twist motorSpeed)
 	//长方形车体似乎并不满足v_turn=(v_r - v_l)/L;的关系
 	//经一番查阅资料，应该采用skid-string模型更合适：
 	//v_turn = (v_r - v_l) / (a * L),其中a为ICR系数
-	v_turn=v_turnJoin/1.5591/0.62;	//左转为正 v_turn=(v_r - v_l)/a/L; //1.5591 in here is a hardcode coef, to fix 
+	//rough measure a==1.71, error level is #0.001#
+	v_turn=v_turnJoin/1.70/0.62;	//左转为正 v_turn=(v_r - v_l)/a/L; //1.5591 in here is a hardcode coef, to fix 
 	
 	double dt=(current_time-last_time).toSec();
 	double delta_x = v_x * dt;
@@ -47,7 +48,7 @@ void speed_to_odom(geometry_msgs::Twist motorSpeed)
 	if(theta<0)
 	    theta+=2*M_PI;
 	
-	std::cout<<"theta:"<<theta<<std::endl;
+	//std::cout<<"theta:"<<theta<<std::endl;
 	
 	geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(theta);
 	
