@@ -60,7 +60,18 @@ void move_base_speedHandle(geometry_msgs::Twist cmd_vel)
         }
         
     }
-    //TODO oh shit, the motor controller set speed format is !m 0 x or !m x 0 
+    //the motor controller set speed format is “!m 0 x” or “!m x 0” 
+    if((speed_R * speed_L)>0)	//heading or backing
+    {
+    	speed_L=0;
+    	speed_R=-speed_R/3;	//!m 0 -100时关系是3,但其他命令好像不是，非线性的 TODO
+
+    }
+    else if((speed_R * speed_L)<0)	//turning
+    {
+    	speed_L=-speed_L/3；
+    	speed_R=0；
+    }
     motor_ctrler->setSpeed(speed_L,speed_R);
     
 }
