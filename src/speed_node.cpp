@@ -7,12 +7,60 @@
 #include <nav_msgs/Odometry.h>
 
 MotorController* motor_ctrler;
-
+bool Trust_ROSNAV=false;
 void Write_speedHandle(geometry_msgs::Twist motorSpeed)
 {
     int speed_L=motorSpeed.linear.x;
     int speed_R=motorSpeed.linear.y;
     
+    motor_ctrler->setSpeed(speed_L,speed_R);
+    
+}
+
+/*--------Handle function---------*/
+//  recieve message "cmd_vel"
+//  velocity command from move_base
+/*--------------------------------*/
+void move_base_speedHandle(geometry_msgs::Twist cmd_vel)
+{
+    int speed_R=0;
+    int speed_L=0;
+    if(!Trust_ROSNAV)
+        return;
+    //cmd_vel_to_speed();
+    if(cmd_vel.linear.y!=0 || cmd_vel.linear.z!=0 || 
+        cmd_vel.angular.x!=0 || cmd_vel.angular.y!=0)
+    {
+        std::cerr<<"WARN: illegal action"<<std::endl;   //use ROS_ERROR?
+        return;
+    }
+    //if need rotate, rotate first
+    if(cmd_vel.angular.z<-0.1||cmd_vel.angular.z>0.1)
+    {
+         speed_R=cmd_vel.angular.z*1.70*0.62/2;
+         speed_L=-speed_R;
+         speed_R=speed_R*2400/1.0053096;
+         speed_L=speed_L*2400/1.0053096;
+    }
+    else    //then heading or stepback
+    {
+        if(cmd_vel.linear.x < -1/3 || cmd_vel.linear.x > 1/3)
+        {
+            if(cmd_vel.linear.x>0)
+            speed_R=1/3*2400/1.0053096;    //should limit the max_vel to 1/3 i.e 800RPM for encoder
+            else 
+            speed_R=-1/3*2400/1.0053096; 
+            
+            speed_L=speed_R;
+        }
+        else
+        {
+            speed_R=cmd_vel.linear.x*2400/1.0053096;    //should limit the max_vel to 1/3 i.e 800RPM for encoder
+            speed_L=speed_R;
+        }
+        
+    }
+    //TODO oh shit, the motor controller set speed format is !m 0 x or !m x 0 
     motor_ctrler->setSpeed(speed_L,speed_R);
     
 }
@@ -28,6 +76,9 @@ int main(int argc, char** argv)
     ROS_INFO("\033[1;32m---->\033[0m Speed Node Started.");
     
     ros::Subscriber sub_setSpeed=nh.subscribe<geometry_msgs::Twist>("/motor_set_speed",1,&Write_speedHandle);
+    //import move_base velocity command
+    ros::Subscriber sub_cmdVel=nh.subscriber<geometry_msgs::Twist>("cmd_vel",1,&move_base_speedHandle);
+    ros::param::set("Trust_ROSNAV",false);
     
     ros::Publisher speed_pub=nh.advertise<geometry_msgs::Twist>("/motor_get_speed",50);	//先只用轮式odom，后期融合激光odom
     
@@ -44,7 +95,8 @@ int main(int argc, char** argv)
     ros::Rate rate(200);    //control frequence 200Hz
     while(ros::ok())
     {
-    
+        if(!ros::param::get("Trust_ROSNAV",Trust_ROSNAV))
+            std::cerr<<"cannot get parameter /speed_node/Trust_ROSNAV"<<std::endl;
     	motor_ctrler->getSpeed(speed_getL,speed_getR);
 		
 		//正确的关系应该是：
