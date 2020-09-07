@@ -8,6 +8,7 @@
 
 MotorController* motor_ctrler;
 bool Trust_ROSNAV=false;
+double MAX_v_x=0.2; double MAX_v_th=0.15;
 void Write_speedHandle(geometry_msgs::Twist motorSpeed)
 {
     int speed_L=motorSpeed.linear.x;
@@ -23,6 +24,7 @@ void Write_speedHandle(geometry_msgs::Twist motorSpeed)
 /*--------------------------------*/
 void move_base_speedHandle(geometry_msgs::Twist cmd_vel)
 {
+    //ROS_INFO("cmd_vel receieved!");
     int speed_R=0;
     int speed_L=0;
     if(!Trust_ROSNAV)
@@ -34,22 +36,24 @@ void move_base_speedHandle(geometry_msgs::Twist cmd_vel)
         std::cerr<<"WARN: illegal action"<<std::endl;   //use ROS_ERROR?
         return;
     }
-    //if need rotate, rotate first
+    //if need rotate, rotate first? //TODO
     if(cmd_vel.angular.z<-0.1||cmd_vel.angular.z>0.1)
+    //if(std::abs(cmd_vel.angular.z) == MAX_v_th )
     {
-         speed_R=cmd_vel.angular.z*1.70*0.62/2;
+         speed_R=cmd_vel.angular.z*1.70*0.62/2*2400/1.0053096;
          speed_L=-speed_R;
-         speed_R=speed_R*2400/1.0053096;
-         speed_L=speed_L*2400/1.0053096;
-    }
-    else    //then heading or stepback
+         //speed_R=speed_R
+         //speed_L=speed_L*2400/1.0053096;
+    }/*
+    else if(std::abs(cmd_vel.linear.x) == MAX_v_x)    //then heading or stepback
     {
-        if(cmd_vel.linear.x < -1/3 || cmd_vel.linear.x > 1/3)
+        
+        if( (cmd_vel.linear.x < (-0.333333)) || (cmd_vel.linear.x > 0.333333) )
         {
             if(cmd_vel.linear.x>0)
-            speed_R=1/3*2400/1.0053096;    //should limit the max_vel to 1/3 i.e 800RPM for encoder
+            speed_R=800;    //1/3*2400/1.0053096;    //should limit the max_vel to 1/3 i.e 800RPM for encoder
             else 
-            speed_R=-1/3*2400/1.0053096; 
+            speed_R=-800;   //-1/3*2400/1.0053096; 
             
             speed_L=speed_R;
         }
@@ -60,18 +64,55 @@ void move_base_speedHandle(geometry_msgs::Twist cmd_vel)
         }
         
     }
-    //the motor controller set speed format is “!m 0 x” or “!m x 0” 
-    if((speed_R * speed_L)>0)	//heading or backing
+    else
     {
-    	speed_L=0;
+        if((std::abs(cmd_vel.linear.x) / MAX_v_x) > std::abs(cmd_vel.angular.z) / MAX_v_th)
+        {
+            speed_R=cmd_vel.linear.x*2400/1.0053096;    //should limit the max_vel to 1/3 i.e 800RPM for encoder
+            speed_L=speed_R;
+        }
+        else
+        {
+            speed_R=cmd_vel.angular.z*1.70*0.62/2*2400/1.0053096;
+            speed_L=-speed_R;
+        }
+    }*/
+    else if( std::abs(cmd_vel.linear.x) > 0.000001 )
+    {
+        if( (cmd_vel.linear.x < (-0.333333)) || (cmd_vel.linear.x > 0.333333) )
+        {
+            if(cmd_vel.linear.x>0)
+            speed_R=800;    //1/3*2400/1.0053096;    //should limit the max_vel to 1/3 i.e 800RPM for encoder
+            else 
+            speed_R=-800;   //-1/3*2400/1.0053096; 
+            
+            speed_L=speed_R;
+        }
+        else
+        {
+            speed_R=cmd_vel.linear.x*2400/1.0053096;    //should limit the max_vel to 1/3 i.e 800RPM for encoder
+            speed_L=speed_R;
+        }
+    }
+    else
+    {
+         speed_R=cmd_vel.angular.z*1.70*0.62/2*2400/1.0053096;
+         speed_L=-speed_R;
+    }
+    //the motor controller set speed format is “!m 0 x” or “!m x 0” 
+    //if((speed_R * speed_L)>0)	//heading or backing
+    if((speed_R>0&&speed_L>0) || (speed_R<0&&speed_L<0))
+    {
+       	speed_L=0;
     	speed_R=-speed_R/3;	//!m 0 -100时关系是3,但其他命令好像不是，非线性的 TODO
 
     }
-    else if((speed_R * speed_L)<0)	//turning
+    else if((speed_R>0&&speed_L<0) || (speed_R<0&&speed_L>0))	//turning
     {
-    	speed_L=-speed_L/3；
-    	speed_R=0；
+    	speed_L=-speed_L/3;
+    	speed_R=0;
     }
+    std::cout<<"speed_L: "<<speed_L<<" speed_R: "<<speed_R<<std::endl;
     motor_ctrler->setSpeed(speed_L,speed_R);
     
 }
@@ -88,8 +129,10 @@ int main(int argc, char** argv)
     
     ros::Subscriber sub_setSpeed=nh.subscribe<geometry_msgs::Twist>("/motor_set_speed",1,&Write_speedHandle);
     //import move_base velocity command
-    ros::Subscriber sub_cmdVel=nh.subscriber<geometry_msgs::Twist>("cmd_vel",1,&move_base_speedHandle);
+    ros::Subscriber sub_cmdVel=nh.subscribe<geometry_msgs::Twist>("/cmd_vel",1,&move_base_speedHandle);
     ros::param::set("Trust_ROSNAV",false);
+    ros::param::get("/move_base/TrajectoryPlannerROS/max_vel_x",MAX_v_x);
+    ros::param::get("/move_base/TrajectoryPlannerROS/max_vel_x",MAX_v_th);
     
     ros::Publisher speed_pub=nh.advertise<geometry_msgs::Twist>("/motor_get_speed",50);	//先只用轮式odom，后期融合激光odom
     
@@ -103,11 +146,12 @@ int main(int argc, char** argv)
    	speed_get.angular.x=0;
     speed_get.angular.y=0;
     speed_get.angular.z=0;
-    ros::Rate rate(200);    //control frequence 200Hz
+    ros::Rate rate(1000);    //control frequence 200Hz
     while(ros::ok())
     {
         if(!ros::param::get("Trust_ROSNAV",Trust_ROSNAV))
             std::cerr<<"cannot get parameter /speed_node/Trust_ROSNAV"<<std::endl;
+        //std::cout<<"Trust_ROSNAV: "<<Trust_ROSNAV<<std::endl;
     	motor_ctrler->getSpeed(speed_getL,speed_getR);
 		
 		//正确的关系应该是：
