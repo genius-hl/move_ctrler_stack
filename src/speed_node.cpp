@@ -130,7 +130,7 @@ int main(int argc, char** argv)
     ros::Subscriber sub_setSpeed=nh.subscribe<geometry_msgs::Twist>("/motor_set_speed",1,&Write_speedHandle);
     //import move_base velocity command
     ros::Subscriber sub_cmdVel=nh.subscribe<geometry_msgs::Twist>("/cmd_vel",1,&move_base_speedHandle);
-    ros::param::set("Trust_ROSNAV",false);
+    nh.setParam("Trust_ROSNAV", true);
     ros::param::get("/move_base/TrajectoryPlannerROS/max_vel_x",MAX_v_x);
     ros::param::get("/move_base/TrajectoryPlannerROS/max_vel_x",MAX_v_th);
     
@@ -149,8 +149,9 @@ int main(int argc, char** argv)
     ros::Rate rate(1000);    //control frequence 200Hz
     while(ros::ok())
     {
-        if(!ros::param::get("Trust_ROSNAV",Trust_ROSNAV))
-            std::cerr<<"cannot get parameter /speed_node/Trust_ROSNAV"<<std::endl;
+        //if(!ros::param::get("Trust_ROSNAV",Trust_ROSNAV))
+            //std::cerr<<"cannot get parameter /speed_node/Trust_ROSNAV"<<std::endl;
+        nh.param("Trust_ROSNAV",Trust_ROSNAV,true);
         //std::cout<<"Trust_ROSNAV: "<<Trust_ROSNAV<<std::endl;
     	motor_ctrler->getSpeed(speed_getL,speed_getR);
 		
